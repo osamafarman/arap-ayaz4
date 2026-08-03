@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Arapça Yazı Atölyesi — Adım Adım Kurs</title>
+  <meta name="description" content="Türkçe konuşan yeni başlayanlar için adım adım Arapça harf yazma kursu: öğren, çalış, sınav ol." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍️</text></svg>" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <span class="brand-mark" dir="rtl">ب</span>
+        <div>
+          <h1>Arapça Yazı Atölyesi</h1>
+          <p>Adım adım: öğren · çalış · sınav ol</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="lang-btn" class="btn btn-ghost btn-sm" title="Arayüz dili / لغة الواجهة">
+          ع
+        </button>
+        <button type="button" id="admin-btn" class="btn btn-ghost btn-sm" title="Yönetici modu (öğretmen)">
+          🔧
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-ghost btn-sm" title="Tüm ilerlemeyi sıfırla">
+          ↺ Sıfırla
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tüm ekranlar (yol haritası / ders oynatıcı) buraya çizilir -->
+  <main id="app" class="wrap"></main>
+
+  <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
+  <!-- Modüller: sırayla yüklenir, hepsi window.AH ad alanını paylaşır -->
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/letterforms.js"></script>
+  <!-- Yöneticinin uygulamaya KALICI olarak gömdüğü veriler -->
+  <script src="js/custom-paths.js"></script>
+  <script src="js/custom-data.js"></script>
+  <script src="js/custom-audio.js"></script>
+  <!-- Küçük katman: içerik düzenlemelerini course.js'ten ÖNCE uygular ve
+       yolları okur. Yönetici paneli (admin.js ~94 KB) burada YÜKLENMEZ;
+       🔧 düğmesine basılınca istek üzerine gelir. -->
+  <script src="js/overrides.js"></script>
+  <script src="js/course.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/confetti.js"></script>
+  <script src="js/skeleton.js"></script>
+  <script src="js/tracing.js"></script>
+  <script src="js/strokecheck.js"></script>
+  <script src="js/assembly.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Çevrimdışı çalışma / tablete kurulum (yalnızca http(s) üzerinden) -->
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () { /* sessizce geç */ });
+      });
+    }
+  </script>
+</body>
+</html>

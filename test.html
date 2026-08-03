@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arapça Yazı Atölyesi — Otomatik Testler</title>
+<style>
+  body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: #f4f6fb; color: #0f172a; }
+  header { background: #0f172a; color: #fff; padding: 14px 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; flex: 1 1 auto; }
+  button { font: inherit; padding: 8px 16px; border-radius: 9px; border: 0; background: #4f46e5; color: #fff; cursor: pointer; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: progress; }
+  main { padding: 18px; }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pill { padding: 8px 14px; border-radius: 99px; font-size: 14px; font-weight: 700; }
+  .pill.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+  .pill.bad { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .pill.info { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+  .grp { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .grp > h2 { margin: 0; font-size: 14px; padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .case { padding: 7px 14px; font-size: 13.5px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 10px; }
+  .case:last-child { border-bottom: 0; }
+  .case .st { flex: none; font-weight: 700; width: 22px; }
+  .case.pass .st { color: #059669; }
+  .case.fail .st { color: #dc2626; }
+  .case .msg { color: #475569; }
+  .ar { font-family: "Traditional Arabic","Amiri","Segoe UI",serif; font-size: 20px; }
+  canvas { display: block; width: 620px; height: 310px; }
+  #stage { position: fixed; left: -9999px; top: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧪 Arapça Yazı Atölyesi — Otomatik Testler</h1>
+  <button id="run">Testleri çalıştır</button>
+</header>
+<main>
+  <div class="summary" id="summary"></div>
+  <div id="out"></div>
+</main>
+
+<div id="stage"><canvas id="pad"></canvas></div>
+
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/letterforms.js"></script>
+<script src="js/custom-paths.js"></script>
+<script src="js/custom-data.js"></script>
+<script src="js/custom-learn.js"></script>
+<script src="js/overrides.js"></script>
+<script src="js/backup.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/admin-audio.js"></script>
+<script src="js/course.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/confetti.js"></script>
+<script src="js/skeleton.js"></script>
+<script src="js/tracing.js"></script>
+<script src="js/strokecheck.js"></script>
+<script src="js/assembly.js"></script>
+<script>
+/* =========================================================================
+   Elle yaptığım kontrolleri kalıcı hâle getiren küçük test koşucusu.
+   Amaç: müfredat ya da motor değiştiğinde bir şeyin bozulduğunu hemen görmek.
+   ========================================================================= */
+(function () {
+  const AH = window.AH;
+  const out = document.getElementById('out');
+  let groups = {}, pass = 0, fail = 0;
+
+  function group(name) {
+    if (!groups[name]) {
+      const el = document.createElement('div');
+      el.className = 'grp';
+      el.innerHTML = '<h2>' + name + '</h2>';
+      out.appendChild(el);
+      groups[name] = el;
+    }
+    return groups[name];
+  }
+  function check(grp, ok, title, msg) {
+    const el = document.createElement('div');
+    el.className = 'case ' + (ok ? 'pass' : 'fail');
+    el.innerHTML = '<span class="st">' + (ok ? '✓' : '✗') + '</span>' +
+                   '<span>' + title + (msg ? ' <span class="msg">— ' + msg + '</span>' : '') + '</span>';
+    group(grp).appendChild(el);
+    ok ? pass++ : fail++;
+    return ok;
+  }
+  /* Sadece hata olduğunda satır bas (uzun listeleri kısaltmak için) */
+  function checkQuiet(grp, ok, title, msg) {
+    if (ok) { pass++; return true; }
+    return check(grp, false, title, msg);
+  }
+
+  const pad = AH.tracing.create(document.getElementById('pad'), {});
+
+  function mask() { return pad.glyphMask(); }
+  function onInk(m, x, y) {
+    x = Math.round(x); y = Math.round(y);
+    return x >= 0 && y >= 0 && x < m.w && y < m.h && m.data[(y * m.w + x) * 4 + 3] > 40;
+  }
+
+  /* Bir noktanın mürekkebe UZAKLIĞI (piksel). Bulunamazsa max+1 döner.
+     Otomatik iskelet her zaman mürekkebin üstündedir; ama ÖĞRETMENİN elle
+     yazdığı yollar (Öğretme Atölyesi) doğal olarak birkaç piksel taşar.
+     Bu yüzden "sıfır taşma" yerine "kalem kalınlığı kadar tolerans" ölçülür:
+     gerçekten harften kopmuş bir yol yine yakalanır. */
+  function inkDist(m, x, y, max) {
+    x = Math.round(x); y = Math.round(y);
+    for (let r = 0; r <= max; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const px = x + dx, py = y + dy;
+          if (px < 0 || py < 0 || px >= m.w || py >= m.h) continue;
+          if (m.data[(py * m.w + px) * 4 + 3] > 40) return r;
+        }
+      }
+    }
+    return max + 1;
+  }
+  /** Yolun mürekkepten en fazla ne kadar (font boyu %) uzaklaştığı. */
+  function maxStray(m, pts, fontSize) {
+    const lim = Math.round(fontSize * 0.25);
+    let mx = 0;
+    pts.forEach((q) => {
+      const d = inkDist(m, q.x, q.y, lim);
+      if (d > mx) mx = d;
+    });
+    return mx / fontSize;
+  }
+  /* Kabul edilen sapma: kalem kalınlığı mertebesi (font boyunun %10'u). */
+  const STRAY_OK = 0.10;
+
+  /* Bir ucun, istenen başlangıç köşesine uygunluk puanı.
+     ÖNEMLİ: "her zaman sağdan başla" YANLIŞTIR — kitapçığa göre
+     ج ح خ ص ض ع غ م harfleri SOL ÜST uçtan başlar. Ölçüt, harfin
+     kendi startRule'udur. Uçlar, yolun kendi kutusuna göre 0–1'e
+     normalize edilir ki ölçek karışmasın. */
+  function cornerScore(rule, u, v) {
+    switch (rule) {
+      case 'top': return -v;
+      case 'bottom': return v;
+      case 'right': return -u;
+      case 'left': return u;
+      case 'topleft': return u - v;
+      case 'topright': return -u - v;
+      case 'bottomleft': return u + v;
+      case 'bottomright': return -u + v;
+      default: return -v;
+    }
+  }
+  /** Yol, kuralın gösterdiği uçtan mı başlıyor? (u: 0 sağ · 1 sol) */
+  function startsAtRule(pts, rule, layout) {
+    if (pts.length < 2) return true;
+    let mnx = 1e9, mxx = -1e9, mny = 1e9, mxy = -1e9;
+    pts.forEach((p) => {
+      if (p.x < mnx) mnx = p.x; if (p.x > mxx) mxx = p.x;
+      if (p.y < mny) mny = p.y; if (p.y > mxy) mxy = p.y;
+    });
+    const dx = (mxx - mnx) || 1, dy = (mxy - mny) || 1;
+    const N = (p) => [(mxx - p.x) / dx, (p.y - mny) / dy];
+    const a = N(pts[0]), b = N(pts[pts.length - 1]);
+    return cornerScore(rule, a[0], a[1]) >= cornerScore(rule, b[0], b[1]) - 0.35;
+  }
+  function draw(points, id) {
+    const cv = pad.canvas, r = cv.getBoundingClientRect();
+    const pe = (t, p) => new PointerEvent(t, { bubbles: true, cancelable: true, pointerId: id,
+      pointerType: 'mouse', clientX: r.left + p.x, clientY: r.top + p.y });
+    const d = [];
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const n = Math.max(2, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / 4));
+      for (let k = 0; k < n; k++) d.push({ x: a.x + (b.x - a.x) * k / n, y: a.y + (b.y - a.y) * k / n });
+    }
+    d.push(points[points.length - 1]);
+    cv.dispatchEvent(pe('pointerdown', d[0]));
+    for (let i = 1; i < d.length; i++) cv.dispatchEvent(pe('pointermove', d[i]));
+    cv.dispatchEvent(pe('pointerup', d[d.length - 1]));
+  }
+  function dot(p, id) {
+    const cv = pad.canvas, r = cv.getBoundingClientRect();
+    const pe = (t, q) => new PointerEvent(t, { bubbles: true, cancelable: true, pointerId: id,
+      pointerType: 'mouse', clientX: r.left + q.x, clientY: r.top + q.y });
+    cv.dispatchEvent(pe('pointerdown', p));
+    cv.dispatchEvent(pe('pointermove', { x: p.x + 2, y: p.y + 2 }));
+    cv.dispatchEvent(pe('pointerup', { x: p.x + 2, y: p.y + 2 }));
+  }
+
+  function run() {
+    out.innerHTML = ''; groups = {}; pass = 0; fail = 0;
+    const t0 = performance.now();
+    const D = AH.data, LF = AH.letterforms;
+
+    /* ---------------- 1) MÜFREDAT ---------------- */
+    const G1 = 'Müfredat verisi';
+    check(G1, D.ALPHABET.length === 28, '28 harf tanımlı', D.ALPHABET.length + ' harf');
+    const taught = [];
+    let allWords = 0;
+    D.STAGES.forEach((st) => {
+      st.letters.forEach((L) => taught.push(L.char));
+      D.allExercises(st).forEach((ex) => {
+        allWords++;
+        /* denklem, kelimeyi doğru üretiyor mu? */
+        const joined = ex.equation.join('').replace(/ـ/g, '');
+        checkQuiet(G1, joined === ex.result,
+          'Denklem uyuşmuyor: ' + ex.id, '<span class="ar">' + joined + '</span> ≠ <span class="ar">' + ex.result + '</span>');
+        /* harekesiz hâli sözcükle aynı mı? */
+        checkQuiet(G1, D.stripTashkeel(ex.vowelled) === ex.result,
+          'Harekeli/harekesiz uyuşmuyor: ' + ex.id,
+          '<span class="ar">' + D.stripTashkeel(ex.vowelled) + '</span> ≠ <span class="ar">' + ex.result + '</span>');
+        /* kelime yalnızca O ANA KADAR öğretilen harfleri içermeli */
+        for (const ch of ex.result) {
+          const base = ({ 'أ': 'ا', 'إ': 'ا', 'آ': 'ا' })[ch] || ch;
+          checkQuiet(G1, taught.indexOf(base) >= 0,
+            'Öğretilmemiş harf: ' + ex.id, '<span class="ar">' + ch + '</span> henüz öğretilmedi');
+        }
+        checkQuiet(G1, !!ex.tr && !!ex.vowelled, 'Eksik alan: ' + ex.id, '');
+      });
+    });
+    check(G1, true, 'Toplam kelime/hece alıştırması: ' + allWords, '');
+    const ids = D.STAGES.flatMap((s) => D.allExercises(s)).map((e) => e.id);
+    check(G1, new Set(ids).size === ids.length, 'Alıştırma id’leri benzersiz', '');
+    check(G1, new Set(taught).size === 28, 'Aşamalar 28 harfin tamamını kapsıyor', taught.length + ' harf');
+
+    /* denklem üreticisi bilinen örnekleri doğru veriyor mu? */
+    const G1b = 'Denklem üreticisi';
+    [['باب', 'بـ ـا ب'], ['بحث', 'بـ ـحـ ـث'], ['أخت', 'أ خـ ـت'],
+     ['دار', 'د ا ر'], ['نور', 'نـ ـو ر'], ['سلام', 'سـ ـلـ ـا م']].forEach(([w, exp]) => {
+      const got = D.buildEquation(w).join(' ');
+      checkQuiet(G1b, got === exp, 'buildEquation("' + w + '")',
+        '<span class="ar">' + got + '</span> ≠ <span class="ar">' + exp + '</span>');
+    });
+    check(G1b, true, 'Bilinen denklemler doğrulandı', '');
+
+    /* ---------------- 2) KURS YAPISI ---------------- */
+    const G2 = 'Kurs yapısı';
+    const units = AH.course.allUnits(), steps = AH.course.allSteps();
+    check(G2, units.length > 0 && steps.length > 0,
+      units.length + ' ünite / ' + steps.length + ' adım üretildi', '');
+    const sids = steps.map((s) => s.id);
+    check(G2, new Set(sids).size === sids.length, 'Adım id’leri benzersiz',
+      (sids.length - new Set(sids).size) + ' çakışma');
+    checkQuiet(G2, units.every((u) => u.steps.length > 0), 'Boş ünite yok', '');
+    check(G2, units.every((u) => u.steps.length > 0), 'Her ünitede en az bir adım var', '');
+
+    /* ---------------- 3) İSKELET: TÜM HARF BİÇİMLERİ ---------------- */
+    const G3 = 'İskelet — 28 harf × 4 biçim';
+    let formCount = 0;
+    const keys = ['isolated', 'initial', 'medial', 'final'];
+    D.ALPHABET.forEach((L) => {
+      keys.forEach((k) => {
+        const rule = LF.get(L.char, k);
+        if (!checkQuiet(G3, !!rule, 'Yazım kuralı yok: ' + L.char + ' / ' + k, '')) return;
+        pad.setForm(rule); pad.setWord(L.forms[k]);
+        const p = pad.refPath(), dots = pad.refDots(), m = mask();
+        const fs = pad.getLayout().fontSize;
+        formCount++;
+        checkQuiet(G3, p.length >= 2, 'Yol çok kısa: ' + L.char + ' / ' + k, p.length + ' nokta');
+        const stray = maxStray(m, p, fs);
+        checkQuiet(G3, stray <= STRAY_OK, 'Yol harften çok uzakta: ' + L.char + ' / ' + k,
+          '%' + Math.round(stray * 100) + ' sapma (sınır %' + Math.round(STRAY_OK * 100) + ')');
+        const strayDots = maxStray(m, dots, fs);
+        checkQuiet(G3, strayDots <= STRAY_OK, 'Nokta harften çok uzakta: ' + L.char + ' / ' + k,
+          '%' + Math.round(strayDots * 100) + ' sapma');
+        /* ك gibi gövdeden ayrı ek parçası olan harfler hariç, sayı tutmalı */
+        const expected = L.dots;
+        const tolerated = (L.char === 'ك');
+        checkQuiet(G3, tolerated || dots.length === expected,
+          'Nokta sayısı: ' + L.char + ' / ' + k, dots.length + ' ≠ ' + expected);
+      });
+    });
+    check(G3, true, formCount + ' biçim tarandı', '');
+
+    /* ---------------- 4) İSKELET: KELİMELER ---------------- */
+    const G4 = 'İskelet — kelimeler';
+    let wordCount = 0;
+    D.STAGES.forEach((st) => D.allExercises(st).forEach((ex) => {
+      const info = LF.parseFragment(ex.equation[0]);
+      const f = LF.get(info.char, info.formKey);
+      pad.setForm({ isWord: true, startRule: f ? f.startRule : 'right',
+        dots: { count: D.dotsInWord(ex.result) } });
+      pad.setWord(ex.result);
+      const p = pad.refPath(), dots = pad.refDots(), L = pad.getLayout(), m = mask();
+      wordCount++;
+      checkQuiet(G4, p.length >= 2, 'Yol yok: ' + ex.result, '');
+      const wStray = maxStray(m, p, L.fontSize);
+      checkQuiet(G4, wStray <= STRAY_OK, 'Yol harften çok uzakta: ' + ex.result,
+        '%' + Math.round(wStray * 100) + ' sapma (sınır %' + Math.round(STRAY_OK * 100) + ')');
+      checkQuiet(G4, dots.length === D.dotsInWord(ex.result),
+        'Nokta sayısı: ' + ex.result, dots.length + ' ≠ ' + D.dotsInWord(ex.result));
+      /* Arapça sağdan sola: PARÇALAR sağdan sola sıralı olmalı.
+         (Parça İÇİNDE nereden başlanacağını harfin kendi kuralı söyler —
+         ج ح خ ص ض ع غ م sol üstten başlar, bu hata değildir.) */
+      const parts = pad.refParts().map((x) => x.path).filter((x) => x && x.length > 1);
+      /* Eşik kelime GENİŞLİĞİNE göredir (atölye denetimiyle aynı ölçü):
+         parçalar x'te çokça örtüşebilir; yalnız belirgin ters sıra hatadır. */
+      const meanX = (a) => a.reduce((s, q) => s + q.x, 0) / a.length;
+      let ordered = true;
+      for (let i = 1; i < parts.length; i++) {
+        if (meanX(parts[i]) > meanX(parts[i - 1]) + L.width * 0.10) ordered = false;
+      }
+      checkQuiet(G4, ordered, 'Parçalar sağdan sola sıralı değil: ' + ex.result,
+        parts.length + ' parça');
+      /* NOT: Parça İÇİNDEKİ başlangıç ucu burada DENETLENMEZ. Bir parça
+         birden çok harf taşır (ör. "ما" = م + ا); harfin kuralı (topleft)
+         parçanın köşesiyle karıştırılamaz — ölçülemeyeni ölçmüş gibi
+         yapmaktansa denetlenmediğini söylemek doğrudur. */
+    }));
+    check(G4, true, wordCount + ' kelime tarandı', '');
+
+    /* ---------------- 5) YAZIM DENETİMİ ---------------- */
+    const G5 = 'Yazım denetimi (strokecheck)';
+    function evaluateWith(glyph, rule, strokes, dotPts) {
+      pad.setForm(rule); pad.setWord(glyph); pad.clear();
+      strokes.forEach((s, i) => draw(s, 900 + i));
+      (dotPts || []).forEach((d, i) => dot(d, 950 + i));
+      const shape = pad.evaluate();
+      return AH.strokecheck.check({
+        strokes: pad.getStrokes(), refPath: pad.refPath(),
+        refParts: pad.refParts().map((x) => x.path), refDots: pad.refDots(),
+        shape, targetBox: pad.inkBox(), baselineY: pad.getLayout().baselineY,
+        fontSize: pad.getLayout().fontSize, dotsInfo: rule.dots
+      });
+    }
+    /* doğru yazım geçmeli */
+    (function () {
+      const rule = LF.get('ب', 'isolated');
+      pad.setForm(rule); pad.setWord('ب');
+      const ref = pad.refPath().map((q) => ({ x: q.x, y: q.y }));
+      const rd = pad.refDots().map((q) => ({ x: q.x, y: q.y }));
+      let r = evaluateWith('ب', rule, [ref], rd);
+      check(G5, r.pass && r.score >= 90, 'Doğru yazım geçiyor', '%' + r.score);
+      /* ters yön reddedilmeli */
+      r = evaluateWith('ب', rule, [ref.slice().reverse()], rd);
+      check(G5, !r.pass && r.problems.some((p) => p.code === 'start'),
+        'Ters yön reddediliyor', '%' + r.score);
+      /* nokta eksik reddedilmeli */
+      r = evaluateWith('ب', rule, [ref], []);
+      check(G5, !r.pass && r.problems.some((p) => p.code === 'dots-missing'),
+        'Noktasız yazım reddediliyor', '%' + r.score);
+      /* ortadan başlama reddedilmeli */
+      const mid = Math.floor(ref.length / 2);
+      r = evaluateWith('ب', rule, [ref.slice(mid), ref.slice(0, mid + 1)], rd);
+      check(G5, !r.pass, 'Ortadan başlama reddediliyor', '%' + r.score);
+      /* titrek el geçmeli (aşırı katı olmamalı) */
+      let s = 7;
+      const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5; };
+      const wob = ref.map((p) => ({ x: p.x + rnd() * 14, y: p.y + rnd() * 14 }));
+      r = evaluateWith('ب', rule, [wob], rd.map((p) => ({ x: p.x + 8, y: p.y + 8 })));
+      check(G5, r.pass, 'Titrek el yazısı kabul ediliyor', '%' + r.score);
+
+      /* ÇOK KÜÇÜK yazma reddedilmeli (oran denetimi) */
+      const c0 = { x: (ref[0].x + ref[ref.length - 1].x) / 2, y: ref[0].y };
+      const small = ref.map((p) => ({ x: c0.x + (p.x - c0.x) * 0.35, y: c0.y + (p.y - c0.y) * 0.35 }));
+      r = evaluateWith('ب', rule, [small], rd.map((p) => ({ x: c0.x + (p.x - c0.x) * 0.35, y: c0.y + (p.y - c0.y) * 0.35 })));
+      /* Reddedilmesi ŞART; gerekçe yola göre değişebilir: çok küçültülen
+         çizgi kimi referansta "gövde değil, nokta" sayılır — o da reddir. */
+      check(G5, !r.pass && (r.parts.proportion == null || r.parts.proportion < 60),
+        'Çok küçük yazma reddediliyor',
+        '%' + r.score + (r.parts.proportion == null
+          ? ' · gövde bulunamadı' : ' · büyüklük %' + r.parts.proportion));
+
+      /* PARMAKLA TEK DOKUNUŞ nokta sayılmalı (mobilde en sık durum) */
+      (function () {
+        pad.setForm(rule); pad.setWord('ب'); pad.clear();
+        draw(ref, 880);
+        /* hiç hareket etmeyen tek dokunuş */
+        const cv = pad.canvas, rr = cv.getBoundingClientRect();
+        const pe = (t, p) => new PointerEvent(t, { bubbles: true, cancelable: true,
+          pointerId: 881, pointerType: 'touch', clientX: rr.left + p.x, clientY: rr.top + p.y });
+        cv.dispatchEvent(pe('pointerdown', rd[0]));
+        cv.dispatchEvent(pe('pointerup', rd[0]));
+        const shape2 = pad.evaluate();
+        const r2 = AH.strokecheck.check({
+          strokes: pad.getStrokes(), refPath: pad.refPath(),
+          refParts: pad.refParts().map((x) => x.path), refDots: pad.refDots(),
+          shape: shape2, targetBox: pad.inkBox(), baselineY: pad.getLayout().baselineY,
+          fontSize: pad.getLayout().fontSize, dotsInfo: rule.dots
+        });
+        check(G5, r2.dotsMatched === 1 && r2.pass,
+          'Parmakla TEK DOKUNUŞ nokta olarak sayılıyor',
+          '%' + r2.score + ' · nokta ' + r2.dotsMatched + '/' + r2.dotsExpected);
+      })();
+
+      /* SATIRDAN KAYMIŞ yazı reddedilmeli (satır denetimi) */
+      const fs = pad.getLayout().fontSize;
+      const drift = ref.map((p) => ({ x: p.x, y: p.y + fs * 0.55 }));
+      r = evaluateWith('ب', rule, [drift], rd.map((p) => ({ x: p.x, y: p.y + fs * 0.55 })));
+      check(G5, !r.pass, 'Satırdan kaymış yazı reddediliyor',
+        '%' + r.score + ' · satır %' + r.parts.baseline);
+    })();
+
+    /* çok parçalı kelime: sondan başlama reddedilmeli */
+    (function () {
+      const ex = { equation: AH.data.buildEquation('باب'), result: 'باب' };
+      const rule = { isWord: true, startRule: LF.get('ب', 'initial').startRule,
+        dots: { count: D.dotsInWord('باب') } };
+      pad.setForm(rule); pad.setWord('باب');
+      const parts = pad.refParts().map((x) => x.path.map((q) => ({ x: q.x, y: q.y })));
+      const rd = pad.refDots().map((q) => ({ x: q.x, y: q.y }));
+      let r = evaluateWith('باب', rule, parts, rd);
+      check(G5, r.pass, 'Kelime: doğru sıra geçiyor', '%' + r.score);
+      if (parts.length > 1) {
+        r = evaluateWith('باب', rule, [parts[1], parts[0]], rd);
+        check(G5, !r.pass, 'Kelime: soldaki harften başlama reddediliyor', '%' + r.score);
+      }
+    })();
+
+    /* ---------------- 5b) SATIR HİZASI ---------------- */
+    const G5b = 'Satır hizası (harfler kırmızı çizgiye oturuyor mu?)';
+    (function () {
+      /* Düz tabanlı, noktasız harfler satıra OTURMALI */
+      const flat = ['ا', 'د', 'ذ', 'ط', 'ظ', 'ك', 'ف', 'ه', 'ت', 'ث', 'ب'];
+      const offs = [];
+      flat.forEach((ch) => {
+        pad.setForm(LF.get(ch, 'isolated'));
+        pad.setWord(ch);
+        const L = pad.getLayout(), m = mask();
+        /* gövde bileşeni (nokta hariç) */
+        const g = new Uint8Array(m.w * m.h);
+        for (let i = 0; i < m.w * m.h; i++) g[i] = m.data[i * 4 + 3] > 60 ? 1 : 0;
+        const comps = AH.skeleton.components(g, m.w, m.h).sort((a, b) => b.count - a.count);
+        if (!comps.length) return;
+        const off = (comps[0].maxy - L.baselineY) / L.fontSize;
+        offs.push(off);
+        checkQuiet(G5b, Math.abs(off) < 0.05,
+          'Satırdan uzak: ' + ch, 'sapma ' + off.toFixed(3) + ' em');
+      });
+      const avg = offs.reduce((a, b) => a + b, 0) / offs.length;
+      check(G5b, Math.abs(avg) < 0.03,
+        flat.length + ' düz tabanlı harf satıra oturuyor',
+        'ortalama sapma ' + avg.toFixed(3) + ' em');
+    })();
+
+    /* ---------------- 6) İLERLEME / DEPOLAMA ---------------- */
+    const G6 = 'İlerleme ve depolama';
+    const before = AH.storage.overall();
+    check(G6, before.total === steps.length, 'Toplam adım sayısı tutarlı',
+      before.total + ' / ' + steps.length);
+    check(G6, typeof AH.storage.nextUnit().id === 'string', 'Sıradaki ünite bulunuyor',
+      AH.storage.nextUnit().title);
+    check(G6, AH.storage.isStageUnlocked(7) === true, 'Tüm aşamalar açık (kilit yok)', '');
+    check(G6, AH.storage.listProfiles().length >= 1, 'En az bir öğrenci profili var',
+      AH.storage.activeProfile().name);
+    check(G6, typeof AH.storage.streak().count === 'number', 'Günlük seri okunuyor', '');
+    check(G6, Array.isArray(AH.storage.dueSteps()), 'Tekrar listesi hesaplanıyor',
+      AH.storage.dueSteps().length + ' adım');
+    check(G6, typeof AH.storage.report().attempts === 'number', 'Rapor üretiliyor', '');
+
+    /* ---------------- 7) DİL / EK MODÜLLER ---------------- */
+    /* ------------- 6b) YENİ ÖĞRETİM BİRİMLERİ ------------- */
+    const G6b = 'Yeni öğretim birimleri';
+    (function () {
+      const units = AH.course.allUnits();
+      const byId = (frag) => units.filter((u) => u.id.indexOf(frag) >= 0);
+
+      /* HAREKELER — müfredattaki her kelime harekeliydi ama ders yoktu */
+      const hrk = byId('-HRK');
+      check(G6b, hrk.length === 1, 'Hareke ünitesi var (1. aşama)', hrk.length + ' ünite');
+      check(G6b, (D.HARAKAT || []).length >= 4, 'Hareke tablosu dolu',
+        (D.HARAKAT || []).length + ' hareke');
+      if (hrk.length) {
+        const ts = hrk[0].steps.map((s) => s.type);
+        checkQuiet(G6b, ts.indexOf('teach-haraka') >= 0, 'Hareke: tanıtım adımı yok', '');
+        checkQuiet(G6b, ts.indexOf('haraka-write') >= 0, 'Hareke: yazma adımı yok', '');
+        checkQuiet(G6b, ts.indexOf('haraka-pick') >= 0, 'Hareke: seçme adımı yok', '');
+        /* her harekenin üstte/altta bilgisi olmalı */
+        (D.HARAKAT || []).forEach((h) => {
+          checkQuiet(G6b, h.pos === 'above' || h.pos === 'below',
+            'Hareke konumu tanımsız: ' + h.id, String(h.pos));
+          checkQuiet(G6b, !!h.mark && !!h.name, 'Hareke eksik alan: ' + h.id, '');
+        });
+      }
+
+      /* NOKTALAR — gövde aynı, fark yalnız nokta */
+      const dots = byId('-DOT');
+      check(G6b, dots.length > 0, 'Nokta ünitesi üretildi', dots.length + ' ünite');
+      dots.forEach((u) => u.steps.forEach((s) => {
+        checkQuiet(G6b, s.letter && s.letter.dots > 0,
+          'Noktasız harf nokta alıştırmasında: ' + (s.letter && s.letter.char), '');
+      }));
+
+      /* BAĞLAMA — hedef, harflerin kendisidir (yazı tipi bağlar) */
+      const join = byId('-JOIN');
+      check(G6b, join.length > 0, 'Bağlama ünitesi üretildi', join.length + ' ünite');
+      join.forEach((u) => u.steps.forEach((s) => {
+        checkQuiet(G6b, s.target && s.target.length === 2,
+          'Bağlama hedefi iki harf değil: ' + s.target, String(s.target));
+        checkQuiet(G6b, s.target.indexOf('ـ') < 0,
+          'Bağlama hedefinde uzatma çizgisi var: ' + s.target, '');
+        checkQuiet(G6b, s.pair && s.pair.a.joinsForward,
+          'İlk harf bağlanmıyor: ' + s.target, '');
+      }));
+
+      /* EKSİK HARF — harf, kelimedeki YERİNE göre doğru biçimde istenmeli */
+      const miss = byId('-MISS');
+      check(G6b, miss.length > 0, 'Eksik harf ünitesi üretildi', miss.length + ' ünite');
+      miss.forEach((u) => u.steps.forEach((s) => {
+        checkQuiet(G6b, !!s.letter && !!s.formKey,
+          'Eksik harf adımında harf/biçim yok: ' + s.id, '');
+        /* istenen şekil, harfin O BİÇİMDEKİ hâli olmalı */
+        checkQuiet(G6b, s.missingGlyph === s.letter.forms[s.formKey],
+          'Eksik harfin biçimi yanlış: ' + s.target,
+          s.missingGlyph + ' ≠ ' + s.letter.forms[s.formKey]);
+        /* eksiltilen parça gerçekten kelimenin denkleminde olmalı */
+        checkQuiet(G6b, s.ex && s.ex.equation && s.index < s.ex.equation.length,
+          'Eksik parça indeksi denklem dışında: ' + s.target, String(s.index));
+      }));
+
+      /* Yeni adımlar mevcut ilerlemeyi bozmamalı: id çakışması olmamalı */
+      const ids = AH.course.allSteps().map((s) => s.id);
+      check(G6b, new Set(ids).size === ids.length, 'Yeni adımlarla id çakışması yok',
+        (ids.length - new Set(ids).size) + ' çakışma');
+    })();
+
+    /* ------------- 6d2) TELEFON HİZALAMASI -------------
+       Kayıtlı yollar harfin ÇİZİM kutusuna göre saklanır; MÜREKKEP o
+       kutunun içinde yazı tipine göre başka yerde durur. Telefonda başka
+       Arapça yazı tipi olduğu için yol harften kayıyordu. Kayda eklenen
+       `ink` (mürekkep kutusu) ile yol bugünkü mürekkebe yeniden oturur. */
+    const G6d2 = 'Telefon hizalaması';
+    (function () {
+      check(G6d2, typeof pad.inkNorm === 'function',
+        'Mürekkep kutusu (u,v) ölçülebiliyor', '');
+
+      pad.setForm(LF.get('ب', 'isolated'));
+      pad.setWord('ب');
+      const here = pad.inkNorm();
+      const ink = pad.inkBox();
+      if (!here || !ink) { check(G6d2, false, 'Mürekkep kutusu okunamadı', ''); return; }
+
+      /* BAŞKA bir cihazda (farklı yazı tipi) çizilmiş gibi bir kayıt:
+         o cihazın mürekkep kutusu daha yukarıda ve daha uzun. */
+      const other = [here[0] - 0.08, here[1] + 0.04, here[2] - 0.14, here[3] - 0.04];
+      const authored = [[
+        [other[0], other[2]],
+        [(other[0] + other[1]) / 2, other[3]],
+        [other[1], other[2]]
+      ]];
+      const before = AH.admin.getPath('ب');
+
+      /* (a) ink YOKKEN: yol harfin üstünden kayar */
+      AH.admin.setPath('ب', { strokes: authored, dots: [] });
+      pad.invalidate();
+      const pNo = pad.refPath();
+      const topNo = pNo.length ? pNo[0].y : 0;
+
+      /* (b) ink VARKEN: yol bugünkü mürekkebe oturur */
+      AH.admin.setPath('ب', { strokes: authored, dots: [], ink: other });
+      pad.invalidate();
+      const pFix = pad.refPath();
+      const topFix = pFix.length ? pFix[0].y : 0;
+
+      check(G6d2, Math.abs(topNo - ink.miny) > 6,
+        'Hizalamasız kayıt gerçekten kayıyor (sorun doğrulandı)',
+        Math.round(Math.abs(topNo - ink.miny)) + ' px kayma');
+      check(G6d2, Math.abs(topFix - ink.miny) <= 2,
+        'Hizalanmış kayıt harfin mürekkebine oturuyor',
+        Math.round(Math.abs(topFix - ink.miny)) + ' px sapma');
+
+      /* Aynı yazı tipinde hiçbir şey değişmemeli (dönüşüm birim olmalı) */
+      AH.admin.setPath('ب', { strokes: authored, dots: [], ink: here });
+      pad.invalidate();
+      const pSame = pad.refPath();
+      const same = pSame.every((q, i) =>
+        Math.abs(q.x - pNo[i].x) < 0.5 && Math.abs(q.y - pNo[i].y) < 0.5);
+      check(G6d2, same, 'Aynı yazı tipinde yol DEĞİŞMİYOR (dönüşüm birim)', '');
+
+      /* temizle */
+      if (before) AH.admin.setPath('ب', before); else AH.admin.clearPath('ب');
+      pad.invalidate();
+    })();
+
+    /* ------------- 6e) SES TANISI ------------- */
+    const G6e = 'Ses tanısı';
+    check(G6e, typeof AH.speech.diagnose === 'function', 'Ses tanı işlevi var', '');
+    check(G6e, typeof AH.speech.voicesReady === 'function',
+      'Sesler ASENKRON bekleniyor (masaüstü sessizliğinin ana sebebi)', '');
+    (function () {
+      const d = AH.speech.diagnose();
+      check(G6e, typeof d.supported === 'boolean' && typeof d.voices === 'number',
+        'Tanı raporu okunabiliyor',
+        d.voices + ' ses · Arapça: ' + (d.arabic || 'yok'));
+    })();
+
+    /* ------------- 6c) İNTİKAN + BUGÜNÜN DERSİ ------------- */
+    const G6c = 'İntikan ve bugünün dersi';
+    (function () {
+      check(G6c, typeof AH.storage.masteryReport === 'function', 'Harf oturması ölçülüyor', '');
+      const m = AH.storage.masteryReport();
+      check(G6c, m.total === D.ALPHABET.length, 'Bütün alfabe ölçülüyor', m.total + ' harf');
+      check(G6c, m.needDays >= 2, 'Oturma için birden çok GÜN gerekiyor',
+        m.needDays + ' gün · %' + AH.storage.MASTERY_SCORE);
+      check(G6c, typeof AH.storage.todaySteps === 'function', 'Bugünün dersi derleniyor', '');
+      const today = AH.storage.todaySteps(12);
+      check(G6c, Array.isArray(today), 'Bugünün dersi liste döndürüyor', today.length + ' alıştırma');
+      checkQuiet(G6c, today.every((x) => x.why === 'weak' || x.why === 'due'),
+        'Her alıştırmanın SEBEBİ kayıtlı', '');
+      /* sınav adımları günlük derse girmemeli */
+      checkQuiet(G6c, today.every((x) => !x.step.exam),
+        'Bugünün dersine sınav adımı karışmıyor', '');
+    })();
+
+    /* ------------- 6d) GÜVENLİK AĞI ------------- */
+    const G6d = 'Yedek ve sürüm';
+    check(G6d, !!AH.backup && typeof AH.backup.snapshot === 'function',
+      'Otomatik yedek modülü yüklü', AH.backup && AH.backup.supported ? 'IndexedDB var' : 'yok');
+    check(G6d, !!AH.overrides && typeof AH.overrides.loadTeacherTools === 'function',
+      'Yönetici araçları istek üzerine yükleniyor', '');
+    check(G6d, !!AH.paths && typeof AH.paths.get === 'function',
+      'Yol okuma katmanı ayrı (öğrenci admin.js yüklemez)', '');
+    check(G6d, typeof AH.admin.PATH_V === 'number',
+      'Kayıtlarda sürüm damgası var', 'v' + AH.admin.PATH_V);
+
+    const G7 = 'Diğer modüller';
+    check(G7, !!AH.i18n && AH.i18n.t('Harfler') === 'Harfler', 'i18n yüklü (Türkçe varsayılan)', '');
+    if (AH.i18n) {
+      const cur = AH.i18n.get();
+      AH.i18n.set('ar');
+      check(G7, AH.i18n.t('Harfler') === 'الحروف', 'Arapça arayüz çevirisi çalışıyor', AH.i18n.t('Harfler'));
+      AH.i18n.set(cur);
+    }
+    check(G7, !!AH.audio, 'Ses kaydı modülü yüklü', AH.audio && AH.audio.supported ? 'IndexedDB var' : 'IndexedDB yok');
+    check(G7, typeof AH.tracing.fontFingerprint === 'function', 'Yazı tipi parmak izi hesaplanıyor',
+      AH.tracing.fontFingerprint());
+    check(G7, !!AH.admin && typeof AH.admin.getPath === 'function', 'Yönetici modülü yüklü', '');
+
+    /* ---------------- özet ---------------- */
+    const ms = Math.round(performance.now() - t0);
+    document.getElementById('summary').innerHTML =
+      '<span class="pill ' + (fail ? 'bad' : 'ok') + '">' +
+        (fail ? '✗ ' + fail + ' hata' : '✓ Hepsi geçti') + '</span>' +
+      '<span class="pill info">' + pass + ' kontrol</span>' +
+      '<span class="pill info">' + ms + ' ms</span>';
+  }
+
+  document.getElementById('run').addEventListener('click', function () {
+    this.disabled = true;
+    setTimeout(() => { try { run(); } finally { this.disabled = false; } }, 10);
+  });
+  run();
+})();
+</script>
+</body>
+</html>

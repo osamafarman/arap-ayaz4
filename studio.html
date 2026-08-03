@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Öğretme Atölyesi — Harfi kendi elinle öğret</title>
+  <meta name="description" content="Harfi kendi elinle yaz; uygulama üslubunu öğrensin ve diğer harflere/kelimelere uygulasın." />
+  <link rel="stylesheet" href="css/style.css" />
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+</head>
+<body class="studio-body">
+
+  <header class="app-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <span class="brand-mark" dir="rtl">🎓</span>
+        <div>
+          <h1 id="st-title">Öğretme Atölyesi</h1>
+          <p id="st-sub">Sen yaz — uygulama üslubunu öğrensin</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="st-lang" class="btn btn-ghost btn-sm" title="Arayüz dili / لغة الواجهة">ع</button>
+        <a class="btn btn-ghost btn-sm" href="index.html" id="st-back">← Uygulama</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="studio" class="wrap"></main>
+
+  <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
+  <!-- Yalnız gereken modüller: ders/sınav mantığı YÜKLENMEZ (hafif kalsın) -->
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/letterforms.js"></script>
+  <script src="js/custom-paths.js"></script>
+  <script src="js/custom-data.js"></script>
+  <!-- üslup imzaları: yalnız atölye yükler (öğrenci sayfasına girmez) -->
+  <script src="js/custom-learn.js"></script>
+  <script src="js/overrides.js"></script>
+  <script src="js/backup.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/admin-audio.js"></script>
+  <script src="js/projectfile.js"></script>
+  <script src="js/skeleton.js"></script>
+  <script src="js/tracing.js"></script>
+  <script src="js/learn.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "Arapça Yazı Atölyesi",
+  "short_name": "Arapça Yazı",
+  "description": "Türkçe konuşan yeni başlayanlar için adım adım Arapça harf yazma kursu.",
+  "lang": "tr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6fb",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%234f46e5'/%3E%3Ctext x='256' y='368' font-size='320' text-anchor='middle' fill='white' font-family='Traditional Arabic,Amiri,serif'%3E%D8%A8%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
