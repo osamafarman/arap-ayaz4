@@ -3,11 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>محوّل الليرة السورية — قديمة ⇄ جديدة</title>
+  <title>محوّل الليرة السورية</title>
   <meta name="description" content="حوّل بين الليرة السورية القديمة والجديدة (حذف صفرين)، واعرف الأوراق النقدية التي تعطيها والباقي الذي تعيده." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@700;800&display=swap" />
   <link rel="stylesheet" href="css/currency.css" />
   <link rel="manifest" href="currency.webmanifest" />
-  <meta name="theme-color" content="#065f46" />
+  <meta name="theme-color" content="#0d5a45" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💵</text></svg>" />
 </head>
@@ -95,12 +98,14 @@
     <!-- ٥) جدول سريع -->
     <section class="card">
       <h2>٥) جدول سريع</h2>
-      <table class="ref">
-        <thead>
-          <tr><th>الورقة الجديدة</th><th>تساوي بالقديم</th><th>الورقة القديمة</th><th>تساوي بالجديد</th></tr>
-        </thead>
-        <tbody id="ref-body"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="ref">
+          <thead>
+            <tr><th>الورقة الجديدة</th><th>تساوي بالقديم</th><th>الورقة القديمة</th><th>تساوي بالجديد</th></tr>
+          </thead>
+          <tbody id="ref-body"></tbody>
+        </table>
+      </div>
       <p class="info-note">
         الليرة الجديدة دخلت التداول في 2026/01/01 بحذف صفرين: كل 100 ليرة قديمة = 1 ليرة جديدة.
         الفئات الجديدة: 10 · 25 · 50 · 100 · 200 · 500.

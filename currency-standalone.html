@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>محوّل الليرة السورية</title>
+<meta name="theme-color" content="#0d5a45" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💵</text></svg>" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@700;800&display=swap" />
+<style>
+/* =========================================================================
+   currency.css — محوّل الليرة السورية (قديمة ⇄ جديدة)
+
+   واجهة عربية من اليمين إلى اليسار، بلا أي اعتماد خارجي سوى خطّين
+   اختياريين من Google Fonts (يعمل التطبيق كاملًا بدونهما).
+
+   الألوان كلها متغيّرات (tokens) معرّفة ثلاث مرات:
+     :root                                   → النهار (الأساس)
+     @media (prefers-color-scheme: dark)      → الليل حسب النظام
+     :root[data-theme="dark"] / ["light"]     → اختيار صريح
+   ========================================================================= */
+
+:root {
+  /* رماديات مائلة قليلًا إلى الأخضر — لون التطبيق، لا رمادي محايد */
+  --bg: #eef3ef;
+  --surface: #ffffff;
+  --surface-2: #f5faf7;
+  --ink: #0e1a15;
+  --ink-soft: #4c5f57;
+  --ink-faint: #85968d;
+  --line: #d8e5df;
+
+  --new: #0f7a5a;          /* العملة الجديدة */
+  --new-soft: #e2f5ec;
+  --old: #a4620d;          /* العملة القديمة */
+  --old-soft: #fbf0dc;
+  --bad: #b3261e;
+  --bad-soft: #fbe9e7;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(14,26,21,.05), 0 10px 28px rgba(14,26,21,.07);
+
+  --display: "Noto Kufi Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1310;
+    --surface: #12201b;
+    --surface-2: #172722;
+    --ink: #e6f1eb;
+    --ink-soft: #a6bbb1;
+    --ink-faint: #6d8279;
+    --line: #24382f;
+
+    --new: #4ade9f;
+    --new-soft: #0c2c22;
+    --old: #e0a944;
+    --old-soft: #2d2410;
+    --bad: #f0837a;
+    --bad-soft: #331816;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b1310;
+  --surface: #12201b;
+  --surface-2: #172722;
+  --ink: #e6f1eb;
+  --ink-soft: #a6bbb1;
+  --ink-faint: #6d8279;
+  --line: #24382f;
+
+  --new: #4ade9f;
+  --new-soft: #0c2c22;
+  --old: #e0a944;
+  --old-soft: #2d2410;
+  --bad: #f0837a;
+  --bad-soft: #331816;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.45);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; direction: rtl;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%;
+}
+
+/* كل الأرقام بعرض ثابت حتى تصطفّ رأسيًا */
+.val, .cnt, .note-chip, .sub, table.ref td, input[type="text"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 14px 56px; }
+
+/* ---------------------------------------------------------------- الترويسة */
+.app-header {
+  background: linear-gradient(140deg, #07352a 0%, #0d5a45 55%, #12775b 100%);
+  color: #f2fbf7; padding: 22px 0 26px;
+}
+.app-header .wrap { padding-bottom: 0; }
+.app-header h1 {
+  margin: 0; font-family: var(--display); font-size: 23px; font-weight: 800;
+  letter-spacing: -.2px; text-wrap: balance;
+}
+.app-header p { margin: 6px 0 0; font-size: 14.5px; color: rgba(242,251,247,.82); }
+.rate-badge {
+  display: inline-block; margin-top: 12px; background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.26); padding: 6px 13px; border-radius: 99px;
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- بطاقات */
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; margin-top: 14px;
+}
+.card > h2, details.settings summary {
+  margin: 0 0 12px; font-family: var(--display); font-size: 16px; font-weight: 700;
+  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+}
+.card > h2 .hint { font-family: var(--body); font-size: 13px; font-weight: 400; color: var(--ink-faint); }
+
+/* --------------------------------------------------------------- الإدخال */
+label.field {
+  display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+  letter-spacing: .3px; margin-bottom: 6px;
+}
+input[type="text"], input[type="number"] {
+  width: 100%; font: inherit; font-size: 22px; font-weight: 600; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--ink);
+  text-align: right; direction: ltr; unicode-bidi: plaintext;
+}
+input:focus-visible { outline: 2px solid var(--new); outline-offset: 1px; border-color: var(--new); }
+input.small { font-size: 15px; padding: 7px 9px; }
+
+.seg {
+  display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 4px; margin-top: 8px;
+}
+.seg button {
+  flex: 1 1 0; font: inherit; font-weight: 600; font-size: 15px; padding: 9px 6px; cursor: pointer;
+  border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft);
+  transition: background .12s ease, color .12s ease;
+}
+.seg button:hover { color: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--new); outline-offset: 1px; }
+.seg button[aria-pressed="true"] { background: var(--new); color: #f2fbf7; }
+.seg.alt button[aria-pressed="true"] { background: var(--old); color: #fffdf8; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .seg button[aria-pressed="true"],
+  :root:not([data-theme="light"]) .seg.alt button[aria-pressed="true"] { color: #08120e; }
+}
+:root[data-theme="dark"] .seg button[aria-pressed="true"],
+:root[data-theme="dark"] .seg.alt button[aria-pressed="true"] { color: #08120e; }
+
+/* --------------------------------------------------------------- النتيجة */
+.result { margin-top: 14px; display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 520px) { .result { grid-template-columns: 1fr; } }
+.result .box { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 13px; }
+.result .box.n { background: var(--new-soft); border-color: var(--new); }
+.result .box.o { background: var(--old-soft); border-color: var(--old); }
+.result .lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.result .val {
+  font-family: var(--display); font-size: 27px; font-weight: 800; line-height: 1.25;
+  direction: ltr; text-align: right; unicode-bidi: plaintext;
+}
+.result .box.n .val { color: var(--new); }
+.result .box.o .val { color: var(--old); }
+.result .unit { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+
+/* ---------------------------------------------------------------- الأوراق */
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.note-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 11px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2);
+}
+/* شكل الورقة: مستطيل صغير بإطار داخلي فاتح كحواف الورقة النقدية */
+.note-chip {
+  flex: none; min-width: 78px; text-align: center; font-family: var(--display);
+  font-weight: 700; font-size: 15px; padding: 8px 9px; border-radius: 6px;
+  color: #fff; direction: ltr;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.18);
+}
+.note-row .times { font-weight: 600; font-size: 17px; color: var(--ink-faint); }
+.note-row .cnt { font-family: var(--display); font-weight: 700; font-size: 19px; min-width: 2.1em; }
+.note-row .sub {
+  margin-inline-start: auto; font-size: 12.5px; color: var(--ink-faint);
+  direction: ltr; unicode-bidi: plaintext; text-align: left;
+}
+.total-line {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  font-weight: 600; font-size: 14.5px;
+}
+.empty { color: var(--ink-faint); font-size: 14px; padding: 6px 2px; }
+
+.warn {
+  margin-top: 10px; background: var(--bad-soft); border: 1px solid var(--bad);
+  color: var(--bad); border-radius: var(--radius-sm); padding: 10px 12px;
+  font-size: 14px; font-weight: 500;
+}
+.info-note {
+  font-size: 13.5px; color: var(--ink-soft); background: var(--surface-2);
+  border: 1px dashed var(--line); border-radius: var(--radius-sm);
+  padding: 9px 12px; margin-top: 10px;
+}
+
+/* --------------------------------------------------------------- الإعدادات */
+details.settings summary { cursor: pointer; margin-bottom: 0; }
+details.settings summary:focus-visible { outline: 2px solid var(--new); outline-offset: 3px; }
+details.settings[open] summary { margin-bottom: 12px; }
+.den-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 8px; margin-top: 10px; }
+.den-item {
+  display: flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 6px 9px; background: var(--surface-2);
+}
+.den-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--new); flex: none; }
+.den-item .name { font-weight: 600; font-size: 14px; direction: ltr; unicode-bidi: plaintext; }
+.den-item input.count {
+  width: 60px; margin-inline-start: auto; text-align: center; font-weight: 600;
+}
+.sub-h {
+  font-family: var(--display); font-size: 13.5px; font-weight: 700; color: var(--ink-soft);
+  margin: 16px 0 0;
+}
+
+/* ----------------------------------------------------------------- الجدول */
+.table-scroll { overflow-x: auto; }
+table.ref { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 340px; }
+table.ref th, table.ref td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+table.ref th { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+table.ref tr:last-child td { border-bottom: 0; }
+table.ref td.n { color: var(--new); font-weight: 700; direction: ltr; }
+table.ref td.o { color: var(--old); font-weight: 700; direction: ltr; }
+
+.btn {
+  font: inherit; font-weight: 600; font-size: 14.5px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); border-radius: var(--radius-sm);
+  padding: 8px 14px; cursor: pointer; transition: border-color .12s ease, color .12s ease;
+}
+.btn:hover { border-color: var(--new); color: var(--new); }
+.btn:focus-visible { outline: 2px solid var(--new); outline-offset: 1px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+footer.foot { text-align: center; color: var(--ink-faint); font-size: 12.5px; margin-top: 24px; line-height: 1.9; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+    <div class="wrap">
+      <h1>💵 محوّل الليرة السورية</h1>
+      <p>القديمة ⇄ الجديدة، مع الأوراق التي تعطيها والباقي الذي تعيده</p>
+      <span class="rate-badge">100 ليرة قديمة = 1 ليرة جديدة</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ١) المبلغ والتحويل -->
+    <section class="card">
+      <h2>١) اكتب المبلغ</h2>
+      <label class="field" for="amount">المبلغ</label>
+      <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="مثال: 7500" />
+      <div class="seg" id="amount-cur" role="group" aria-label="عملة المبلغ">
+        <button type="button" data-cur="new" aria-pressed="true">ليرة جديدة</button>
+        <button type="button" data-cur="old" aria-pressed="false">ليرة قديمة</button>
+      </div>
+
+      <div class="result">
+        <div class="box n">
+          <div class="lbl">بالعملة الجديدة</div>
+          <div class="val" id="out-new">—</div>
+          <div class="unit">ل.س جديدة</div>
+        </div>
+        <div class="box o">
+          <div class="lbl">بالعملة القديمة</div>
+          <div class="val" id="out-old">—</div>
+          <div class="unit">ل.س قديمة</div>
+        </div>
+      </div>
+      <div id="amount-err" class="warn" hidden>المبلغ غير صحيح — اكتب أرقامًا فقط.</div>
+    </section>
+
+    <!-- ٢) الأوراق التي تعطيها -->
+    <section class="card">
+      <h2>٢) الأوراق التي تعطيها <span class="hint">أقلّ عدد أوراق ممكن</span></h2>
+      <div class="seg" id="plan-cur" role="group" aria-label="عملة الدفع">
+        <button type="button" data-cur="new" aria-pressed="true">أدفع بالجديدة</button>
+        <button type="button" data-cur="old" aria-pressed="false">أدفع بالقديمة</button>
+      </div>
+      <div id="plan-out"></div>
+    </section>
+
+    <!-- ٣) الباقي -->
+    <section class="card">
+      <h2>٣) الباقي للزبون <span class="hint">اختياري</span></h2>
+      <label class="field" for="paid">المبلغ الذي دفعه الزبون</label>
+      <input id="paid" type="text" inputmode="decimal" autocomplete="off" placeholder="مثال: 10000" />
+      <div class="seg alt" id="paid-cur" role="group" aria-label="عملة المدفوع">
+        <button type="button" data-cur="new" aria-pressed="true">جديدة</button>
+        <button type="button" data-cur="old" aria-pressed="false">قديمة</button>
+      </div>
+      <div id="change-out"></div>
+    </section>
+
+    <!-- ٤) الفئات المتوفرة -->
+    <section class="card">
+      <details class="settings" id="settings">
+        <summary>٤) الفئات المتوفرة ومحفظتي</summary>
+        <p class="info-note">
+          أطفئ أي فئة غير متوفرة عندك. واترك خانة العدد فارغة إذا كان لديك منها ما يكفي،
+          أو اكتب عدد الأوراق التي تملكها فعلًا فيحسب البرنامج ما يمكن دفعه بها.
+        </p>
+
+        <h3 class="sub-h">الأوراق الجديدة</h3>
+        <div class="den-grid" id="den-new"></div>
+
+        <h3 class="sub-h">الأوراق القديمة</h3>
+        <div class="den-grid" id="den-old"></div>
+
+        <div class="btn-row">
+          <button type="button" class="btn" id="reset-denoms">إعادة الضبط</button>
+          <button type="button" class="btn" id="clear-counts">مسح الأعداد (غير محدود)</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- ٥) جدول سريع -->
+    <section class="card">
+      <h2>٥) جدول سريع</h2>
+      <div class="table-scroll">
+        <table class="ref">
+          <thead>
+            <tr><th>الورقة الجديدة</th><th>تساوي بالقديم</th><th>الورقة القديمة</th><th>تساوي بالجديد</th></tr>
+          </thead>
+          <tbody id="ref-body"></tbody>
+        </table>
+      </div>
+      <p class="info-note">
+        الليرة الجديدة دخلت التداول في 2026/01/01 بحذف صفرين: كل 100 ليرة قديمة = 1 ليرة جديدة.
+        الفئات الجديدة: 10 · 25 · 50 · 100 · 200 · 500.
+      </p>
+    </section>
+
+    <footer class="foot">
+      يعمل بلا إنترنت · لا يُرسل أي بيانات · الحساب كله يجري على جهازك
+    </footer>
+  </main>
+<script>
+/* =========================================================================
+   currency-core.js — منطق تحويل الليرة السورية (القديمة ⇄ الجديدة)
+
+   • سعر التحويل ثابت رسميًا: 100 ليرة قديمة = 1 ليرة جديدة (حذف صفرين).
+   • كل الحسابات تجري بوحدة داخلية واحدة = "ليرة قديمة" (عدد صحيح)،
+     حتى لا تتراكم أخطاء الكسور العشرية:  1 جديدة = 100 وحدة.
+   • الدالة الأهم: makeChange() — تحسب أقلّ عدد أوراق يعطيها الشخص
+     لمبلغ معيّن، مع مراعاة ما يملكه فعلًا من أوراق (اختياري).
+
+   لا اعتماد على أي مكتبة خارجية، ويعمل في المتصفح وفي Node معًا.
+   ========================================================================= */
+(function (root, factory) {
+  'use strict';
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  root.SYP = api;
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  'use strict';
+
+  /* 100 ليرة قديمة = 1 ليرة جديدة */
+  const RATE = 100;
+
+  /* فئات العملة. القيمة بالفئة نفسها (لا بالوحدة الداخلية).
+     on: هل هي متداولة/مفعّلة افتراضيًا. */
+  const DENOMS = {
+    /* الأوراق الجديدة (بدأ تداولها 2026/01/01): 10 · 25 · 50 · 100 · 200 · 500 */
+    new: [
+      { value: 500, kind: 'note', on: true },
+      { value: 200, kind: 'note', on: true },
+      { value: 100, kind: 'note', on: true },
+      { value: 50,  kind: 'note', on: true },
+      { value: 25,  kind: 'note', on: true },
+      { value: 10,  kind: 'note', on: true }
+    ],
+    /* الأوراق القديمة المتداولة، والقطع المعدنية القديمة مطفأة افتراضيًا
+       لأنها عمليًا خرجت من الاستعمال. */
+    old: [
+      { value: 5000, kind: 'note', on: true },
+      { value: 2000, kind: 'note', on: true },
+      { value: 1000, kind: 'note', on: true },
+      { value: 500,  kind: 'note', on: true },
+      { value: 200,  kind: 'note', on: true },
+      { value: 100,  kind: 'note', on: true },
+      { value: 50,   kind: 'note', on: true },
+      { value: 25,   kind: 'coin', on: false },
+      { value: 10,   kind: 'coin', on: false },
+      { value: 5,    kind: 'coin', on: false }
+    ]
+  };
+
+  /* ---------------------------------------------------------------- أرقام */
+
+  /* يقبل الأرقام العربية (٠١٢…) والفواصل والمسافات: "١٢٬٥٠٠" → 12500 */
+  function parseAmount(str) {
+    if (typeof str === 'number') return isFinite(str) ? str : null;
+    if (str == null) return null;
+    let s = String(str).trim();
+    if (!s) return null;
+    /* أرقام عربية-هندية وفارسية → لاتينية */
+    s = s.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+         .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+    /* فواصل الآلاف والمسافات (بما فيها المسافة غير الفاصلة) تُحذف */
+    s = s.replace(/[,٬  \s'’]/g, '');
+    /* الفاصلة العشرية العربية → نقطة */
+    s = s.replace(/٫/g, '.');
+    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(s)) return null;
+    const n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+
+  /* تقريب لأقرب عدد صحيح من الوحدات (= ليرة قديمة) */
+  function toUnits(amount, cur) {
+    const n = typeof amount === 'number' ? amount : parseAmount(amount);
+    if (n == null) return null;
+    return Math.round(cur === 'new' ? n * RATE : n);
+  }
+
+  function fromUnits(units, cur) {
+    if (units == null) return null;
+    return cur === 'new' ? units / RATE : units;
+  }
+
+  /* تحويل مبلغ من عملة إلى الأخرى → { old, new, units } */
+  function convert(amount, from) {
+    const units = toUnits(amount, from);
+    if (units == null) return null;
+    return { units: units, old: fromUnits(units, 'old'), new: fromUnits(units, 'new') };
+  }
+
+  /* تنسيق للعرض: فواصل آلاف، وحتى منزلتين عشريتين بلا أصفار زائدة */
+  function format(amount) {
+    if (amount == null || !isFinite(amount)) return '—';
+    const neg = amount < 0;
+    const v = Math.abs(amount);
+    const rounded = Math.round(v * 100) / 100;
+    const intPart = Math.floor(rounded);
+    const frac = Math.round((rounded - intPart) * 100);
+    let out = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    if (frac) out += '.' + (frac % 10 === 0 ? String(frac / 10) : String(frac).padStart(2, '0'));
+    return (neg ? '-' : '') + out;
+  }
+
+  /* ------------------------------------------------------- حلّ الفئات (DP) */
+
+  function gcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
+
+  function emptyPlan() { return { items: [], notes: 0, total: 0 }; }
+
+  function planTotal(items) {
+    return items.reduce((s, it) => s + it.value * it.count, 0);
+  }
+
+  /* يبني قائمة الفئات الفعّالة بوحدة الحساب الداخلية.
+     denoms: [{ value, count }] — value بالفئة نفسها، count عدد ما تملكه
+     (null/undefined = غير محدود). */
+  function activeDenoms(denoms, cur) {
+    const mul = cur === 'new' ? RATE : 1;
+    return denoms
+      .filter((d) => d && d.value > 0 && (d.count == null || d.count > 0))
+      .map((d) => ({
+        face: d.value,
+        value: Math.round(d.value * mul),
+        count: d.count == null ? null : Math.floor(d.count)
+      }))
+      .sort((a, b) => b.value - a.value);
+  }
+
+  const INF = 0xffff;
+
+  /**
+   * makeChange — أقلّ عدد أوراق لدفع مبلغ.
+   *
+   * target : المبلغ بالوحدة الداخلية (ليرة قديمة، عدد صحيح)
+   * denoms : [{ value, count }] بفئات العملة cur
+   * cur    : 'old' | 'new'
+   *
+   * الناتج:
+   *   { exact, target, best, under, over, capped }
+   *   best  : الحل المضبوط (إن وُجد) — { items:[{value,count}], notes, total }
+   *   under : أكبر مبلغ يمكن تكوينه ولا يتجاوز المطلوب
+   *   over  : أصغر مبلغ يمكن تكوينه ويغطّي المطلوب (تُعاد منه البقية)
+   * القيم في items بفئات العملة (مثلاً 500 للورقة الجديدة 500).
+   */
+  function makeChange(target, denoms, cur, opts) {
+    opts = opts || {};
+    const MAX_CELLS = opts.maxCells || 400000;
+    const out = { exact: false, target: target, best: null, under: null, over: null, capped: false };
+
+    if (!(target >= 0)) return out;
+    const act = activeDenoms(denoms || [], cur);
+    if (target === 0) { out.exact = true; out.best = emptyPlan(); out.under = emptyPlan(); out.over = emptyPlan(); return out; }
+    if (!act.length) { out.under = emptyPlan(); return out; }
+
+    const maxV = act[0].value;
+    const unlimited = act.every((d) => d.count == null);
+
+    /* المبالغ الكبيرة: نخصم مسبقًا أكبر فئة حتى يبقى نطاق صغير للـ DP.
+       (صحيح لأن الفئات غير محدودة، وأكبر فئة تُستعمل قدر الإمكان) */
+    const pre = [];
+    let base = target;
+    if (unlimited) {
+      const windowSize = maxV * 40;
+      if (base > windowSize) {
+        const k = Math.floor((base - windowSize) / maxV);
+        if (k > 0) { pre.push({ value: act[0].face, count: k }); base -= k * maxV; }
+      }
+    }
+
+    const g = act.reduce((acc, d) => gcd(acc, d.value), 0) || 1;
+    /* سقف الفهرسة: المطلوب + أكبر فئة (لنجد الحل الذي يغطّي المبلغ)،
+       ومحدود أيضًا بمجموع ما يملكه المستخدم. */
+    let limit = base + maxV;
+    if (!unlimited) {
+      const wallet = act.reduce((s, d) => s + d.value * (d.count == null ? 1e9 : d.count), 0);
+      limit = Math.min(limit, wallet);
+    }
+    let N = Math.floor(limit / g);
+    if (N > MAX_CELLS) { N = MAX_CELLS; out.capped = true; }
+
+    const dp = new Uint16Array(N + 1).fill(INF);
+    dp[0] = 0;
+    const layers = [];
+    for (let d = 0; d < act.length; d++) {
+      const step = act[d].value / g;
+      if (step > N) { layers.push(null); continue; }
+      const cap = act[d].count == null ? Infinity : act[d].count;
+      const used = new Uint16Array(N + 1);
+      for (let i = step; i <= N; i++) {
+        const prev = dp[i - step];
+        if (prev !== INF && prev + 1 < dp[i] && used[i - step] < cap) {
+          dp[i] = prev + 1;
+          used[i] = used[i - step] + 1;
+        }
+      }
+      layers.push({ step: step, used: used, face: act[d].face });
+    }
+
+    /* إعادة بناء الحل عند الفهرس idx */
+    function build(idx) {
+      const items = [];
+      let i = idx;
+      for (let d = layers.length - 1; d >= 0; d--) {
+        const L = layers[d];
+        if (!L) continue;
+        const k = L.used[i];
+        if (k > 0) { items.push({ value: L.face, count: k }); i -= k * L.step; }
+      }
+      items.sort((a, b) => b.value - a.value);
+      /* نضمّ الفئات المخصومة مسبقًا */
+      for (const p of pre) {
+        const hit = items.find((it) => it.value === p.value);
+        if (hit) hit.count += p.count; else items.push(p);
+      }
+      items.sort((a, b) => b.value - a.value);
+      const notes = items.reduce((s, it) => s + it.count, 0);
+      return { items: items, notes: notes, total: planTotal(items) * (cur === 'new' ? RATE : 1) };
+    }
+
+    const tIdx = base % g === 0 ? base / g : -1;
+    if (tIdx >= 0 && tIdx <= N && dp[tIdx] !== INF) {
+      out.exact = true;
+      out.best = build(tIdx);
+      out.under = out.best;
+      out.over = out.best;
+      return out;
+    }
+
+    /* أقرب مبلغ أقل أو يساوي */
+    for (let i = Math.min(N, Math.floor(base / g)); i >= 0; i--) {
+      if (dp[i] !== INF) { out.under = build(i); break; }
+    }
+    /* أقرب مبلغ يغطّي المطلوب */
+    for (let i = Math.ceil(base / g); i <= N; i++) {
+      if (dp[i] !== INF) { out.over = build(i); break; }
+    }
+    return out;
+  }
+
+  /* واجهة مختصرة: خطة الدفع لمبلغ بعملة معيّنة */
+  function payPlan(amount, cur, denoms, opts) {
+    const units = toUnits(amount, cur);
+    if (units == null) return null;
+    return makeChange(units, denoms, cur, opts);
+  }
+
+  /* الفئات الافتراضية لعملة ما (نسخة قابلة للتعديل) */
+  function defaultDenoms(cur, onlyOn) {
+    return DENOMS[cur]
+      .filter((d) => (onlyOn === false ? true : d.on))
+      .map((d) => ({ value: d.value, kind: d.kind, on: d.on, count: null }));
+  }
+
+  return {
+    RATE: RATE,
+    DENOMS: DENOMS,
+    parseAmount: parseAmount,
+    toUnits: toUnits,
+    fromUnits: fromUnits,
+    convert: convert,
+    format: format,
+    makeChange: makeChange,
+    payPlan: payPlan,
+    defaultDenoms: defaultDenoms,
+    _gcd: gcd
+  };
+});
+
+/* =========================================================================
+   currency-app.js — واجهة محوّل الليرة السورية
+
+   كل الحساب في currency-core.js؛ هذا الملف يرسم الشاشة فقط.
+   الإعدادات (الفئات المتوفرة وأعداد الأوراق) تُحفظ في localStorage.
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  const S = window.SYP;
+  const KEY = 'syp-converter-v1';
+
+  const $ = (id) => document.getElementById(id);
+
+  /* ألوان الفئات — لتمييز الورقة بلمحة عين */
+  const COLORS = {
+    new: { 500: '#7c3aed', 200: '#0369a1', 100: '#047857', 50: '#b45309', 25: '#be123c', 10: '#0f766e' },
+    old: { 5000: '#7c3aed', 2000: '#0369a1', 1000: '#047857', 500: '#b45309', 200: '#be123c',
+           100: '#0f766e', 50: '#4338ca', 25: '#64748b', 10: '#64748b', 5: '#64748b' }
+  };
+  const colorOf = (cur, v) => (COLORS[cur] && COLORS[cur][v]) || '#475569';
+  const curName = (cur) => (cur === 'new' ? 'جديدة' : 'قديمة');
+
+  /* ------------------------------------------------------------- الحالة */
+
+  const state = {
+    amountCur: 'new',
+    planCur: 'new',
+    paidCur: 'new',
+    denoms: { new: S.defaultDenoms('new', false), old: S.defaultDenoms('old', false) }
+  };
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        amountCur: state.amountCur, planCur: state.planCur, paidCur: state.paidCur,
+        denoms: state.denoms
+      }));
+    } catch (e) { /* وضع التصفح الخاص: نتابع بلا حفظ */ }
+  }
+
+  function load() {
+    let raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { return; }
+    if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { return; }
+    if (!data || typeof data !== 'object') return;
+    if (data.amountCur === 'old' || data.amountCur === 'new') state.amountCur = data.amountCur;
+    if (data.planCur === 'old' || data.planCur === 'new') state.planCur = data.planCur;
+    if (data.paidCur === 'old' || data.paidCur === 'new') state.paidCur = data.paidCur;
+    ['new', 'old'].forEach((cur) => {
+      const saved = data.denoms && data.denoms[cur];
+      if (!Array.isArray(saved)) return;
+      state.denoms[cur].forEach((d) => {
+        const hit = saved.find((x) => x && x.value === d.value);
+        if (!hit) return;
+        d.on = !!hit.on;
+        d.count = (typeof hit.count === 'number' && hit.count > 0) ? Math.floor(hit.count) : null;
+      });
+    });
+  }
+
+  /* الفئات المفعّلة فقط، بالشكل الذي يفهمه المحرّك */
+  function usable(cur) {
+    return state.denoms[cur].filter((d) => d.on).map((d) => ({ value: d.value, count: d.count }));
+  }
+
+  /* ------------------------------------------------------------- الرسم */
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  /* سطر ورقة واحدة: [الفئة] × العدد ... المجموع */
+  function noteRow(cur, value, count) {
+    const row = el('div', 'note-row');
+    const chip = el('span', 'note-chip', S.format(value));
+    chip.style.background = colorOf(cur, value);
+    row.appendChild(chip);
+    row.appendChild(el('span', 'times', '×'));
+    row.appendChild(el('span', 'cnt', String(count)));
+    const sub = value * count;
+    const other = cur === 'new' ? sub * S.RATE : sub / S.RATE;
+    row.appendChild(el('span', 'sub',
+      '= ' + S.format(sub) + ' ' + curName(cur) + '  (' + S.format(other) + ' ' + curName(cur === 'new' ? 'old' : 'new') + ')'));
+    return row;
+  }
+
+  /* كتلة خطة كاملة: الأوراق + المجموع */
+  function planBlock(cur, plan) {
+    const box = el('div', 'notes');
+    if (!plan || !plan.items.length) {
+      box.appendChild(el('div', 'empty', 'لا توجد أوراق.'));
+      return box;
+    }
+    plan.items.forEach((it) => box.appendChild(noteRow(cur, it.value, it.count)));
+    const totalFace = plan.items.reduce((s, it) => s + it.value * it.count, 0);
+    const line = el('div', 'total-line');
+    line.appendChild(el('span', null, 'المجموع: ' + S.format(totalFace) + ' ' + curName(cur)));
+    line.appendChild(el('span', null, 'عدد الأوراق: ' + plan.notes));
+    box.appendChild(line);
+    return box;
+  }
+
+  /* يرسم نتيجة makeChange في حاوية، مع رسائل الحالات غير المضبوطة */
+  function renderResult(host, res, cur, labels) {
+    host.textContent = '';
+    if (!res) {
+      host.appendChild(el('div', 'empty', labels.idle || 'اكتب المبلغ أولًا.'));
+      return;
+    }
+    if (res.target === 0) {
+      host.appendChild(el('div', 'empty', labels.zero || 'المبلغ صفر.'));
+      return;
+    }
+
+    if (res.capped) {
+      host.appendChild(el('div', 'warn',
+        'المبلغ كبير جدًا بالنسبة لعدد الأوراق المتوفرة — النتيجة تقريبية.'));
+    }
+
+    if (res.exact) {
+      host.appendChild(el('div', 'info-note', labels.exact));
+      host.appendChild(planBlock(cur, res.best));
+      return;
+    }
+
+    /* لا يمكن تكوين المبلغ بالضبط: نعرض أقرب مبلغ يغطّيه، ثم الأقل منه */
+    if (res.over) {
+      const extra = (res.over.total - res.target) / (cur === 'new' ? S.RATE : 1);
+      host.appendChild(el('div', 'warn',
+        'لا يمكن دفع المبلغ بالضبط بالفئات المتوفرة. أقرب مبلغ يغطّيه أكبر بـ ' +
+        S.format(extra) + ' ' + curName(cur) + '.'));
+      host.appendChild(planBlock(cur, res.over));
+      if (res.under && res.under.items.length) {
+        const less = (res.target - res.under.total) / (cur === 'new' ? S.RATE : 1);
+        host.appendChild(el('div', 'info-note',
+          'أو تدفع أقل بـ ' + S.format(less) + ' ' + curName(cur) + ': ' + itemsText(res.under, cur)));
+      }
+      return;
+    }
+
+    /* حتى بكل ما لديك لا يكفي */
+    host.appendChild(el('div', 'warn', labels.short || 'ما لديك من أوراق لا يكفي هذا المبلغ.'));
+    if (res.under && res.under.items.length) {
+      host.appendChild(el('div', 'info-note', 'أقصى ما يمكن دفعه بما لديك:'));
+      host.appendChild(planBlock(cur, res.under));
+    }
+  }
+
+  /* وصف مختصر لخطة في سطر: "1×500 + 2×100" */
+  function itemsText(plan, cur) {
+    if (!plan || !plan.items.length) return 'لا شيء';
+    return plan.items.map((it) => it.count + '×' + S.format(it.value)).join(' + ') +
+           ' = ' + S.format(plan.total / (cur === 'new' ? S.RATE : 1)) + ' ' + curName(cur);
+  }
+
+  /* ------------------------------------------------------- إعادة الحساب */
+
+  function currentUnits(inputId, cur, errId) {
+    const raw = $(inputId).value.trim();
+    const err = errId ? $(errId) : null;
+    if (!raw) { if (err) err.hidden = true; return { empty: true, units: null }; }
+    const n = S.parseAmount(raw);
+    if (n == null || n < 0) { if (err) err.hidden = false; return { empty: false, units: null }; }
+    if (err) err.hidden = true;
+    return { empty: false, units: S.toUnits(n, cur) };
+  }
+
+  function refresh() {
+    /* ١) التحويل */
+    const amt = currentUnits('amount', state.amountCur, 'amount-err');
+    const units = amt.units;
+    $('out-new').textContent = units == null ? '—' : S.format(S.fromUnits(units, 'new'));
+    $('out-old').textContent = units == null ? '—' : S.format(S.fromUnits(units, 'old'));
+
+    /* ٢) الأوراق التي تعطيها */
+    const denoms = usable(state.planCur);
+    let res = null;
+    if (units != null && units > 0) res = S.makeChange(units, denoms, state.planCur);
+    renderResult($('plan-out'), res, state.planCur, {
+      idle: 'اكتب المبلغ في الأعلى لتظهر الأوراق التي تعطيها.',
+      exact: 'ادفع بالضبط بهذه الأوراق:',
+      short: 'ما لديك من أوراق لا يكفي هذا المبلغ.'
+    });
+
+    /* ٣) الباقي */
+    const paid = currentUnits('paid', state.paidCur, null);
+    const host = $('change-out');
+    host.textContent = '';
+    if (units == null || paid.units == null) {
+      host.appendChild(el('div', 'empty', 'اكتب المبلغ المدفوع ليظهر الباقي.'));
+      return;
+    }
+    const diff = paid.units - units;
+    if (diff < 0) {
+      host.appendChild(el('div', 'warn',
+        'المبلغ المدفوع أقل من المطلوب بـ ' + S.format(S.fromUnits(-diff, 'new')) + ' جديدة (' +
+        S.format(-diff) + ' قديمة).'));
+      return;
+    }
+    const head = el('div', 'result');
+    [['new', 'n'], ['old', 'o']].forEach(([cur, cls]) => {
+      const box = el('div', 'box ' + cls);
+      box.appendChild(el('div', 'lbl', 'الباقي بالعملة ال' + (cur === 'new' ? 'جديدة' : 'قديمة')));
+      box.appendChild(el('div', 'val', S.format(S.fromUnits(diff, cur))));
+      box.appendChild(el('div', 'unit', 'ل.س ' + curName(cur)));
+      head.appendChild(box);
+    });
+    host.appendChild(head);
+    if (diff === 0) {
+      host.appendChild(el('div', 'info-note', 'المبلغ مضبوط — لا يوجد باقٍ.'));
+      return;
+    }
+    const sub = el('div');
+    host.appendChild(sub);
+    renderResult(sub, S.makeChange(diff, denoms, state.planCur), state.planCur, {
+      exact: 'الأوراق التي تعيدها للزبون:',
+      short: 'ما لديك من أوراق لا يكفي لإعادة الباقي.'
+    });
+  }
+
+  /* ------------------------------------------------------------ الأزرار */
+
+  function bindSeg(id, key) {
+    const host = $(id);
+    host.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-cur]');
+      if (!btn) return;
+      state[key] = btn.dataset.cur;
+      syncSeg(id, key);
+      save();
+      refresh();
+    });
+    syncSeg(id, key);
+  }
+
+  function syncSeg(id, key) {
+    $(id).querySelectorAll('button[data-cur]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.cur === state[key]));
+    });
+  }
+
+  /* شبكة الفئات: تشغيل/إطفاء + عدد الأوراق المتوفرة */
+  function buildDenomGrid(cur) {
+    const host = $('den-' + cur);
+    host.textContent = '';
+    state.denoms[cur].forEach((d) => {
+      const item = el('label', 'den-item');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = d.on;
+      cb.addEventListener('change', () => { d.on = cb.checked; save(); refresh(); });
+      const name = el('span', 'name', S.format(d.value) + (d.kind === 'coin' ? ' (معدنية)' : ''));
+      const cnt = el('input', 'count small');
+      cnt.type = 'text';
+      cnt.inputMode = 'numeric';
+      cnt.placeholder = '∞';
+      cnt.title = 'عدد الأوراق التي تملكها (فارغ = غير محدود)';
+      cnt.value = d.count == null ? '' : String(d.count);
+      cnt.addEventListener('input', () => {
+        const n = S.parseAmount(cnt.value);
+        d.count = (n == null || n <= 0) ? null : Math.floor(n);
+        save();
+        refresh();
+      });
+      item.appendChild(cb);
+      item.appendChild(name);
+      item.appendChild(cnt);
+      host.appendChild(item);
+    });
+  }
+
+  function buildRefTable() {
+    const body = $('ref-body');
+    const nn = S.DENOMS.new.map((d) => d.value);
+    const oo = S.DENOMS.old.filter((d) => d.kind === 'note').map((d) => d.value);
+    const rows = Math.max(nn.length, oo.length);
+    for (let i = 0; i < rows; i++) {
+      const tr = document.createElement('tr');
+      const n = nn[i], o = oo[i];
+      const cells = [
+        [n == null ? '' : S.format(n), 'n'],
+        [n == null ? '' : S.format(n * S.RATE), 'o'],
+        [o == null ? '' : S.format(o), 'o'],
+        [o == null ? '' : S.format(o / S.RATE), 'n']
+      ];
+      cells.forEach(([txt, cls]) => {
+        const td = el('td', cls, txt);
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    }
+  }
+
+  /* ------------------------------------------------------------- الإقلاع */
+
+  function init() {
+    load();
+    bindSeg('amount-cur', 'amountCur');
+    bindSeg('plan-cur', 'planCur');
+    bindSeg('paid-cur', 'paidCur');
+    buildDenomGrid('new');
+    buildDenomGrid('old');
+    buildRefTable();
+
+    $('amount').addEventListener('input', refresh);
+    $('paid').addEventListener('input', refresh);
+
+    $('reset-denoms').addEventListener('click', () => {
+      state.denoms = { new: S.defaultDenoms('new', false), old: S.defaultDenoms('old', false) };
+      buildDenomGrid('new'); buildDenomGrid('old'); save(); refresh();
+    });
+    $('clear-counts').addEventListener('click', () => {
+      ['new', 'old'].forEach((c) => state.denoms[c].forEach((d) => { d.count = null; }));
+      buildDenomGrid('new'); buildDenomGrid('old'); save(); refresh();
+    });
+
+    refresh();
+    $('amount').focus();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>

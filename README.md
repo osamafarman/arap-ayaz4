@@ -37,7 +37,7 @@ Bu depoda, kurstan bağımsız çalışan ikinci bir küçük uygulama daha var:
 **[`currency.html`](currency.html)** — eski ve yeni Suriye lirası arasında çeviri yapar
 (100 eski = 1 yeni) ve **hangi banknotları vermen gerektiğini** en az kâğıt sayısıyla
 hesaplar; ayrıca para üstünü de çıkarır. Arayüz Arapça (RTL), çevrimdışı çalışır.
-Ayrıntılar: [`README-CURRENCY.md`](README-CURRENCY.md). Testler: `test-currency.html`
+Ayrıntılar: [`README-CURRENCY.md`](README-CURRENCY.md). Tek dosyalık sürüm: `node js/build-standalone.js` → `currency-standalone.html`. Testler: `test-currency.html`
 (ya da `node js/currency-tests.js`).
 
 ## Öğretim modeli

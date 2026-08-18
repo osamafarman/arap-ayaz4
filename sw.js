@@ -21,6 +21,7 @@ const ASSETS = [
   './js/currency-core.js',
   './js/currency-app.js',
   './js/currency-tests.js',
+  './currency-standalone.html',
   './js/data.js',
   './js/letterforms.js',
   './js/i18n.js',
