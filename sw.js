@@ -6,14 +6,21 @@
    tıklayarak (file://) açtığında devreye girmez — uygulama yine çalışır,
    sadece çevrimdışı önbelleği olmaz.
    ========================================================================= */
-const CACHE = 'arapca-atolye-v2';
+const CACHE = 'arapca-atolye-v3';
 const ASSETS = [
   './',
   './index.html',
   './test.html',
   './studio.html',
+  './currency.html',
+  './test-currency.html',
   './manifest.webmanifest',
+  './currency.webmanifest',
   './css/style.css',
+  './css/currency.css',
+  './js/currency-core.js',
+  './js/currency-app.js',
+  './js/currency-tests.js',
   './js/data.js',
   './js/letterforms.js',
   './js/i18n.js',

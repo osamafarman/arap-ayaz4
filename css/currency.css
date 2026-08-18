@@ -1,0 +1,140 @@
+/* =========================================================================
+   currency.css — محوّل الليرة السورية (قديمة ⇄ جديدة)
+   واجهة عربية من اليمين إلى اليسار، بلا أي اعتماد خارجي.
+   ========================================================================= */
+:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --ink-faint: #94a3b8;
+  --line: #e2e8f0;
+  --brand: #047857;          /* أخضر: العملة الجديدة */
+  --brand-soft: #ecfdf5;
+  --alt: #b45309;            /* عنبري: العملة القديمة */
+  --alt-soft: #fffbeb;
+  --bad: #dc2626;
+  --bad-soft: #fef2f2;
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220; --card: #131c2e; --ink: #e8eefc; --ink-soft: #a9b6d0;
+    --ink-faint: #6b7a99; --line: #24304a; --brand: #34d399; --brand-soft: #06281f;
+    --alt: #fbbf24; --alt-soft: #2a1f05; --bad: #f87171; --bad-soft: #2c1414;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, "Noto Naskh Arabic", Tahoma, sans-serif;
+  font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 14px 56px; }
+
+/* ---------------------------------------------------------------- الترويسة */
+.app-header { background: linear-gradient(135deg, #065f46, #0f766e); color: #fff; padding: 18px 0 22px; }
+.app-header .wrap { padding-bottom: 0; }
+.app-header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: .2px; }
+.app-header p { margin: 4px 0 0; font-size: 14px; opacity: .88; }
+.rate-badge {
+  display: inline-block; margin-top: 10px; background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.28); padding: 5px 12px; border-radius: 99px;
+  font-size: 14px; font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- بطاقات */
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px; margin-top: 14px;
+}
+.card > h2 {
+  margin: 0 0 12px; font-size: 16px; font-weight: 800; display: flex; gap: 8px; align-items: center;
+}
+.card > h2 .hint { font-size: 13px; font-weight: 500; color: var(--ink-faint); }
+
+/* --------------------------------------------------------------- الإدخال */
+label.field { display: block; font-size: 14px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+input[type="text"], input[type="number"] {
+  width: 100%; font: inherit; font-size: 22px; font-weight: 700; padding: 12px 14px;
+  border: 2px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink);
+  text-align: right; direction: ltr; unicode-bidi: plaintext;
+}
+input:focus { outline: none; border-color: var(--brand); }
+input.small { font-size: 16px; padding: 8px 10px; font-weight: 600; }
+
+.seg { display: flex; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-top: 8px; }
+.seg button {
+  flex: 1 1 0; font: inherit; font-weight: 700; font-size: 15px; padding: 9px 6px; cursor: pointer;
+  border: 0; border-radius: 9px; background: transparent; color: var(--ink-soft);
+}
+.seg button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+.seg.alt button[aria-pressed="true"] { background: var(--alt); color: #fff; }
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > * { flex: 1 1 220px; }
+
+/* --------------------------------------------------------------- النتيجة */
+.result { margin-top: 14px; display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 520px) { .result { grid-template-columns: 1fr; } }
+.result .box { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.result .box.n { background: var(--brand-soft); }
+.result .box.o { background: var(--alt-soft); }
+.result .lbl { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.result .val { font-size: 26px; font-weight: 800; direction: ltr; text-align: right; unicode-bidi: plaintext; }
+.result .box.n .val { color: var(--brand); }
+.result .box.o .val { color: var(--alt); }
+.result .unit { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+
+/* ---------------------------------------------------------------- الأوراق */
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.note-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+}
+.note-chip {
+  flex: none; min-width: 74px; text-align: center; font-weight: 800; font-size: 15px;
+  padding: 7px 8px; border-radius: 8px; color: #fff; direction: ltr;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.16);
+}
+.note-row .times { font-weight: 800; font-size: 18px; color: var(--ink-soft); }
+.note-row .cnt { font-weight: 800; font-size: 20px; min-width: 2.2em; }
+.note-row .sub { margin-inline-start: auto; font-size: 13px; color: var(--ink-faint); direction: ltr; unicode-bidi: plaintext; }
+.total-line {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+  display: flex; justify-content: space-between; font-weight: 800; font-size: 15px;
+}
+.empty { color: var(--ink-faint); font-size: 14px; padding: 6px 2px; }
+
+.warn {
+  margin-top: 10px; background: var(--bad-soft); border: 1px solid var(--bad);
+  color: var(--bad); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600;
+}
+.info-note { font-size: 13.5px; color: var(--ink-soft); background: var(--bg); border: 1px dashed var(--line);
+  border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+
+/* --------------------------------------------------------------- الإعدادات */
+details.settings summary { cursor: pointer; font-weight: 800; font-size: 16px; }
+.den-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 10px; }
+.den-item { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 9px; background: var(--bg); }
+.den-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--brand); flex: none; }
+.den-item .name { font-weight: 700; font-size: 14px; direction: ltr; unicode-bidi: plaintext; }
+.den-item input.count { width: 62px; margin-inline-start: auto; font-size: 14px; padding: 4px 6px; text-align: center; font-weight: 700; }
+.sub-h { font-size: 14px; font-weight: 800; color: var(--ink-soft); margin: 14px 0 0; }
+
+/* ----------------------------------------------------------------- الجدول */
+table.ref { width: 100%; border-collapse: collapse; font-size: 15px; }
+table.ref th, table.ref td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+table.ref th { font-size: 13px; color: var(--ink-soft); }
+table.ref td.n { color: var(--brand); font-weight: 800; direction: ltr; }
+table.ref td.o { color: var(--alt); font-weight: 800; direction: ltr; }
+
+.btn {
+  font: inherit; font-weight: 700; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  border-radius: 10px; padding: 8px 14px; cursor: pointer;
+}
+.btn:hover { border-color: var(--brand); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+footer.foot { text-align: center; color: var(--ink-faint); font-size: 13px; margin-top: 22px; line-height: 1.9; }

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>محوّل الليرة السورية — اختبارات آلية</title>
+<style>
+  body { font-family: "Segoe UI", system-ui, Tahoma, sans-serif; margin: 0; background: #f4f6fb; color: #0f172a; }
+  header { background: #065f46; color: #fff; padding: 14px 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; flex: 1 1 auto; }
+  button { font: inherit; padding: 8px 16px; border-radius: 9px; border: 0; background: #0f766e; color: #fff; cursor: pointer; font-weight: 700; }
+  main { padding: 18px; }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pill { padding: 8px 14px; border-radius: 99px; font-size: 14px; font-weight: 700; }
+  .pill.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+  .pill.bad { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .grp { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .grp > h2 { margin: 0; font-size: 14px; padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .case { padding: 7px 14px; font-size: 13.5px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 10px; }
+  .case .st { flex: none; font-weight: 800; width: 22px; }
+  .case.pass .st { color: #059669; }
+  .case.fail .st { color: #dc2626; }
+  .case .msg { color: #475569; direction: ltr; unicode-bidi: plaintext; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧪 محوّل الليرة السورية — اختبارات آلية</h1>
+  <button id="run">أعد تشغيل الاختبارات</button>
+</header>
+<main>
+  <div class="summary" id="summary"></div>
+  <div id="out"></div>
+</main>
+
+<script src="js/currency-core.js"></script>
+<script src="js/currency-tests.js"></script>
+<script>
+(function () {
+  'use strict';
+  function render() {
+    const res = window.SYPTests.run();
+    const out = document.getElementById('out');
+    const sum = document.getElementById('summary');
+    out.textContent = ''; sum.textContent = '';
+    let pass = 0, fail = 0;
+    res.groups.forEach((g) => {
+      const box = document.createElement('div'); box.className = 'grp';
+      const h = document.createElement('h2'); h.textContent = g.name; box.appendChild(h);
+      g.cases.forEach((c) => {
+        if (c.ok) pass++; else fail++;
+        const row = document.createElement('div');
+        row.className = 'case ' + (c.ok ? 'pass' : 'fail');
+        const st = document.createElement('span'); st.className = 'st'; st.textContent = c.ok ? '✓' : '✗';
+        const nm = document.createElement('span'); nm.textContent = c.name;
+        const msg = document.createElement('span'); msg.className = 'msg'; msg.textContent = c.ok ? '' : c.msg;
+        row.append(st, nm, msg);
+        box.appendChild(row);
+      });
+      out.appendChild(box);
+    });
+    const p1 = document.createElement('span'); p1.className = 'pill ok'; p1.textContent = 'ناجح: ' + pass;
+    const p2 = document.createElement('span'); p2.className = 'pill ' + (fail ? 'bad' : 'ok'); p2.textContent = 'فاشل: ' + fail;
+    sum.append(p1, p2);
+  }
+  document.getElementById('run').addEventListener('click', render);
+  render();
+})();
+</script>
+</body>
+</html>

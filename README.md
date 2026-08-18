@@ -31,6 +31,15 @@ kur" seçeneğini kullan. Çevrimdışı çalışır (servis çalışanı yalnı
 cihazlarda aynı harf şekilleri kullanılır — bkz. [`fonts/README-FONT.md`](fonts/README-FONT.md).
 Koymazsan sistemdeki Arapça yazı tipine düşer.
 
+## Ek uygulama: Suriye Lirası Çevirici (`currency.html`)
+
+Bu depoda, kurstan bağımsız çalışan ikinci bir küçük uygulama daha var:
+**[`currency.html`](currency.html)** — eski ve yeni Suriye lirası arasında çeviri yapar
+(100 eski = 1 yeni) ve **hangi banknotları vermen gerektiğini** en az kâğıt sayısıyla
+hesaplar; ayrıca para üstünü de çıkarır. Arayüz Arapça (RTL), çevrimdışı çalışır.
+Ayrıntılar: [`README-CURRENCY.md`](README-CURRENCY.md). Testler: `test-currency.html`
+(ya da `node js/currency-tests.js`).
+
 ## Öğretim modeli
 
 ```

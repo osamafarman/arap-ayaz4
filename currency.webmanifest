@@ -1,0 +1,21 @@
+{
+  "name": "محوّل الليرة السورية",
+  "short_name": "محوّل الليرة",
+  "description": "تحويل بين الليرة السورية القديمة والجديدة مع بيان الأوراق النقدية التي تُدفع والباقي.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./currency.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6fb",
+  "theme_color": "#065f46",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23065f46'/%3E%3Ctext x='256' y='330' font-size='260' text-anchor='middle' fill='white' font-family='Segoe UI,Tahoma,sans-serif'%3E%D9%84.%D8%B3%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>محوّل الليرة السورية — قديمة ⇄ جديدة</title>
+  <meta name="description" content="حوّل بين الليرة السورية القديمة والجديدة (حذف صفرين)، واعرف الأوراق النقدية التي تعطيها والباقي الذي تعيده." />
+  <link rel="stylesheet" href="css/currency.css" />
+  <link rel="manifest" href="currency.webmanifest" />
+  <meta name="theme-color" content="#065f46" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💵</text></svg>" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="wrap">
+      <h1>💵 محوّل الليرة السورية</h1>
+      <p>القديمة ⇄ الجديدة، مع الأوراق التي تعطيها والباقي الذي تعيده</p>
+      <span class="rate-badge">100 ليرة قديمة = 1 ليرة جديدة</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ١) المبلغ والتحويل -->
+    <section class="card">
+      <h2>١) اكتب المبلغ</h2>
+      <label class="field" for="amount">المبلغ</label>
+      <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="مثال: 7500" />
+      <div class="seg" id="amount-cur" role="group" aria-label="عملة المبلغ">
+        <button type="button" data-cur="new" aria-pressed="true">ليرة جديدة</button>
+        <button type="button" data-cur="old" aria-pressed="false">ليرة قديمة</button>
+      </div>
+
+      <div class="result">
+        <div class="box n">
+          <div class="lbl">بالعملة الجديدة</div>
+          <div class="val" id="out-new">—</div>
+          <div class="unit">ل.س جديدة</div>
+        </div>
+        <div class="box o">
+          <div class="lbl">بالعملة القديمة</div>
+          <div class="val" id="out-old">—</div>
+          <div class="unit">ل.س قديمة</div>
+        </div>
+      </div>
+      <div id="amount-err" class="warn" hidden>المبلغ غير صحيح — اكتب أرقامًا فقط.</div>
+    </section>
+
+    <!-- ٢) الأوراق التي تعطيها -->
+    <section class="card">
+      <h2>٢) الأوراق التي تعطيها <span class="hint">أقلّ عدد أوراق ممكن</span></h2>
+      <div class="seg" id="plan-cur" role="group" aria-label="عملة الدفع">
+        <button type="button" data-cur="new" aria-pressed="true">أدفع بالجديدة</button>
+        <button type="button" data-cur="old" aria-pressed="false">أدفع بالقديمة</button>
+      </div>
+      <div id="plan-out"></div>
+    </section>
+
+    <!-- ٣) الباقي -->
+    <section class="card">
+      <h2>٣) الباقي للزبون <span class="hint">اختياري</span></h2>
+      <label class="field" for="paid">المبلغ الذي دفعه الزبون</label>
+      <input id="paid" type="text" inputmode="decimal" autocomplete="off" placeholder="مثال: 10000" />
+      <div class="seg alt" id="paid-cur" role="group" aria-label="عملة المدفوع">
+        <button type="button" data-cur="new" aria-pressed="true">جديدة</button>
+        <button type="button" data-cur="old" aria-pressed="false">قديمة</button>
+      </div>
+      <div id="change-out"></div>
+    </section>
+
+    <!-- ٤) الفئات المتوفرة -->
+    <section class="card">
+      <details class="settings" id="settings">
+        <summary>٤) الفئات المتوفرة ومحفظتي</summary>
+        <p class="info-note">
+          أطفئ أي فئة غير متوفرة عندك. واترك خانة العدد فارغة إذا كان لديك منها ما يكفي،
+          أو اكتب عدد الأوراق التي تملكها فعلًا فيحسب البرنامج ما يمكن دفعه بها.
+        </p>
+
+        <h3 class="sub-h">الأوراق الجديدة</h3>
+        <div class="den-grid" id="den-new"></div>
+
+        <h3 class="sub-h">الأوراق القديمة</h3>
+        <div class="den-grid" id="den-old"></div>
+
+        <div class="btn-row">
+          <button type="button" class="btn" id="reset-denoms">إعادة الضبط</button>
+          <button type="button" class="btn" id="clear-counts">مسح الأعداد (غير محدود)</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- ٥) جدول سريع -->
+    <section class="card">
+      <h2>٥) جدول سريع</h2>
+      <table class="ref">
+        <thead>
+          <tr><th>الورقة الجديدة</th><th>تساوي بالقديم</th><th>الورقة القديمة</th><th>تساوي بالجديد</th></tr>
+        </thead>
+        <tbody id="ref-body"></tbody>
+      </table>
+      <p class="info-note">
+        الليرة الجديدة دخلت التداول في 2026/01/01 بحذف صفرين: كل 100 ليرة قديمة = 1 ليرة جديدة.
+        الفئات الجديدة: 10 · 25 · 50 · 100 · 200 · 500.
+      </p>
+    </section>
+
+    <footer class="foot">
+      يعمل بلا إنترنت · لا يُرسل أي بيانات · الحساب كله يجري على جهازك
+    </footer>
+  </main>
+
+  <script src="js/currency-core.js"></script>
+  <script src="js/currency-app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () { /* تجاهل بصمت */ });
+      });
+    }
+  </script>
+</body>
+</html>
